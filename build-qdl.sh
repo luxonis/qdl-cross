@@ -33,3 +33,5 @@ function build_qdl {
 build_libxml
 build_libusb
 build_qdl
+
+cp ./qdl.sh ${OUT_DIR}
