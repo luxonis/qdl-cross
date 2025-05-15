@@ -1,0 +1,64 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-22.04-arm  # Or ubuntu-24.04-arm
+
+    container:
+      image: alpine:latest
+      options: --init  # optional but good for PID 1 handling
+
+    steps:
+      - name: Install dependencies
+        run: |
+          apk add --no-cache bash git make gcc musl-dev \
+            pkgconf autoconf libtool automake linux-headers
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set target arch
+        run: echo "TARGET_ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+
+      - name: Run build script
+        run: bash  -c "pwd ; .ci/scripts/build_in_container.sh"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qdl-${{ matrix.arch }}.tar
+          path: .out/qdl.tar
+
+  release:
+    name: Publish Latest Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: latest
+          tag_name: latest
+          files: artifacts/**/*.tar
+          prerelease: false
+          draft: false
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
