@@ -1,0 +1,21 @@
+# QDL cross
+
+This repository provides scripts to build qdl for all kinds of platforms.
+
+
+## Preqrequisites:
+
+Install the following:
+
+```sh
+bash
+git
+make
+pkg-config (pkgconfig)
+gcc
+musl-dev
+autoconf
+libtool
+automake
+linux-headers
+```

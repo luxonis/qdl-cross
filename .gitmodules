@@ -1,0 +1,9 @@
+[submodule "qdl"]
+	path = qdl
+	url = https://github.com/linux-msm/qdl
+[submodule "libusb"]
+	path = libusb
+	url = https://github.com/libusb/libusb
+[submodule "libxml2"]
+	path = libxml2
+	url = https://gitlab.gnome.org/GNOME/libxml2.git
