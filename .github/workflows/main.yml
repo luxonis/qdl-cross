@@ -20,11 +20,11 @@ jobs:
       options: --init  # optional but good for PID 1 handling
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Install dependencies
         run: .ci/scripts/install_dependencies_alpine.sh
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set safe git directory inside container
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
