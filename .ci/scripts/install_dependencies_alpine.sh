@@ -1,12 +1,3 @@
 #!/bin/sh
 
-apk add bash
-apk add git
-apk add make
-apk add pkgconfig
-apk add gcc
-apk add musl-dev
-apk add autoconf
-apk add libtool
-apk add automake
-apk add linux-headers
+apk add --no-cache bash git make pkgconfig gcc musl-dev autoconf libtool automake linux-headers
