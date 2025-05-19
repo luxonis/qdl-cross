@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qdl-${{ matrix.arch }}.tar
-          path: .out/qdl.tar
+          path: .out/qdl.tar.gz
 
   release:
     name: Publish Latest Release

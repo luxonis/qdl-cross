@@ -35,3 +35,10 @@ build_libusb
 build_qdl
 
 cp ./qdl.sh ${OUT_DIR}
+
+# Make tar package
+pushd ${OUT_DIR}
+chmod a+rwx ./*
+cd ..
+tar czf qdl.tar.gz ./qdl/
+chmod a+rwx ./qdl.tar.gz
