@@ -24,7 +24,6 @@ function build_libusb {
 
 function build_qdl {
     pushd qdl
-    # git apply ../patches/qdl_dont_use_pkg-config.patch
     make -j8 CFLAGS="-I ../libxml2/include/ -I ../libusb/libusb/" LDFLAGS="-Wl,-Bdynamic -L../libusb/libusb/.libs/ -lusb-1.0 -Wl,-Bstatic ../libxml2/.libs/libxml2.a -lm -lc -static-libgcc"
     cp ./qdl ${OUT_DIR}
     popd
@@ -42,3 +41,4 @@ chmod a+rwx ./*
 cd ..
 tar czf qdl.tar.gz ./qdl/
 chmod a+rwx ./qdl.tar.gz
+popd
