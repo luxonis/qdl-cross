@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Install dependencies
-        run: .ci/scripts/build_in_container.sh
+        run: .ci/scripts/install_dependencies_alpine.sh
 
       - name: Checkout repository
         uses: actions/checkout@v4
