@@ -1,0 +1,6 @@
+#!/bin/bash
+if [[ $1 == "-V" ]] ; then
+    clang --version
+else
+clang $@
+fi
