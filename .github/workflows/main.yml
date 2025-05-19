@@ -17,7 +17,7 @@ jobs:
 
     container:
       image: alpine:latest
-      options: --init  # optional but good for PID 1 handling
+      options: --init --net host  # optional but good for PID 1 handling
 
     steps:
       - name: Install git
@@ -41,8 +41,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qdl-${{ matrix.arch }}.tar
-          path: .out/qdl.tar.gz
+          name: qdl-${{ matrix.arch }}
+          path: .out/qdl
 
   release:
     name: Publish Latest Release
@@ -60,7 +60,7 @@ jobs:
         with:
           name: latest
           tag_name: latest
-          files: artifacts/**/*.tar
+          files: artifacts/**/*
           prerelease: false
           draft: false
 

@@ -16,7 +16,7 @@ function build_libxml {
 
 function build_libusb {
     pushd libusb
-    ./autogen.sh --disable-udev
+    LDFLAGS=-static  ./autogen.sh --disable-udev
     make -j8
     cp ./libusb/.libs/libusb-1.0.so.0 $OUT_DIR
     popd
@@ -24,7 +24,9 @@ function build_libusb {
 
 function build_qdl {
     pushd qdl
-    make -j8 CFLAGS="-I ../libxml2/include/ -I ../libusb/libusb/" LDFLAGS="-Wl,-Bdynamic -L../libusb/libusb/.libs/ -lusb-1.0 -Wl,-Bstatic ../libxml2/.libs/libxml2.a -lm -lc -static-libgcc"
+    # Libusb (LGPL) can be statically linked for simplicity since https://github.com/luxonis/qdl-cross is provided.
+    # https://www.gnu.org/licenses/gpl-faq.html#GPLIncompatibleLibs
+    make -j8 CFLAGS='-I ../libxml2/include/ -I ../libusb/libusb/' LDFLAGS='-static ../libusb/libusb/.libs/libusb-1.0.a ../libxml2/.libs/libxml2.a -lm -lc'
     cp ./qdl ${OUT_DIR}
     popd
 }
@@ -32,13 +34,3 @@ function build_qdl {
 build_libxml
 build_libusb
 build_qdl
-
-cp ./qdl.sh ${OUT_DIR}
-
-# Make tar package
-pushd ${OUT_DIR}
-chmod a+rwx ./*
-cd ..
-tar czf qdl.tar.gz ./qdl/
-chmod a+rwx ./qdl.tar.gz
-popd
