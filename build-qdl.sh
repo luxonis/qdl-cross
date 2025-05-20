@@ -42,14 +42,14 @@ function build_qdl_linux {
     pushd qdl
     # Libusb (LGPL) can be statically linked for simplicity since https://github.com/luxonis/qdl-cross is provided.
     # https://www.gnu.org/licenses/gpl-faq.html#GPLIncompatibleLibs
-    make -j8 CFLAGS="'${BUILD_QDL_CFLAGS_COMMON}'" LDFLAGS='-static ../libusb/libusb/.libs/libusb-1.0.a ../libxml2/.libs/libxml2.a -lm -lc'
+    make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-static ../libusb/libusb/.libs/libusb-1.0.a ../libxml2/.libs/libxml2.a -lm -lc'
     cp ./qdl ${OUT_DIR_QDL}
     popd
 }
 
 function build_qdl_macos {
     pushd qdl
-    make -j8 CFLAGS=${BUILD_QDL_CFLAGS_COMMON} LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
+    make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
     dst_lib_dir=${OUT_DIR_QDL}/lib/
     dst_bin_dir=${OUT_DIR_QDL}/bin/
     mkdir -p ${dst_bin_dir}
