@@ -13,26 +13,25 @@ else
     is_macos=false
 fi
 
-
 function build_libxml {
     pushd libxml2
     ./autogen.sh
-    if $is_macos ; then
+    if $is_macos; then
         make -j8
     else
         make -j8 LDFLAGS=-static
-    fi;
+    fi
     popd
 }
 
 function build_libusb {
     pushd libusb
     ./autogen.sh --disable-udev
-    if $is_macos ; then
+    if $is_macos; then
         make -j8
     else
         make -j8 LDFLAGS=-static
-    fi;
+    fi
     popd
 }
 
@@ -61,7 +60,7 @@ function build_qdl_macos {
 
 build_libxml
 build_libusb
-if $is_macos then
+if $is_macos; then
     build_qdl_macos
 else
     build_qdl_linux
