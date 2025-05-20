@@ -50,7 +50,7 @@ jobs:
         run: .ci/scripts/install_dependencies_macos.sh
 
       - name: Run build script
-        run: .ci/scripts/build_in_container.sh"
+        run: .ci/scripts/build_in_container.sh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
