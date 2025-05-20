@@ -36,13 +36,13 @@ function build_libusb {
     popd
 }
 
-BUILD_QDL_CFLAGS_COMMON='-I ../libxml2/include/ -I ../libusb/libusb/ -O2'
+BUILD_QDL_CFLAGS_COMMON='-I ../libxml2/include/ -I ../libusb/libusb/ -O2 -Wall -g'
 
 function build_qdl_linux {
     pushd qdl
     # Libusb (LGPL) can be statically linked for simplicity since https://github.com/luxonis/qdl-cross is provided.
     # https://www.gnu.org/licenses/gpl-faq.html#GPLIncompatibleLibs
-    make -j8 CFLAGS=${BUILD_QDL_CFLAGS_COMMON} LDFLAGS='-static ../libusb/libusb/.libs/libusb-1.0.a ../libxml2/.libs/libxml2.a -lm -lc'
+    make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-static ../libusb/libusb/.libs/libusb-1.0.a ../libxml2/.libs/libxml2.a -lm -lc'
     cp ./qdl ${OUT_DIR_QDL}
     popd
 }
