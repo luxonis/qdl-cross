@@ -9,16 +9,15 @@ mkdir -p $OUT_DIR
 
 function build_libxml {
     pushd libxml2
-    LDFLAGS=-static ./autogen.sh
-    make -j8
+    ./autogen.sh
+    make -j8 LDFLAGS=-static
     popd
 }
 
 function build_libusb {
     pushd libusb
-    LDFLAGS=-static  ./autogen.sh --disable-udev
-    make -j8
-    cp ./libusb/.libs/libusb-1.0.so.0 $OUT_DIR
+    ./autogen.sh --disable-udev
+    make -j8 LDFLAGS=-static
     popd
 }
 
