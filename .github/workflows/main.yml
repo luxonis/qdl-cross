@@ -5,18 +5,18 @@ on:
 
 jobs:
   build:
-    name: Build (${{ matrix.arch }})
+    name: Build (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         include:
-          - arch: x86
+          - platform: linux-x86
             runner: ubuntu-latest
           # - arch: aarch64
           #   runner: ubuntu-22.04-arm  # Or ubuntu-24.04-arm
-          - arch: x86
+          - platform: macos-x86
             runner: macos-13
-          - arch: aarch64
+          - platform: macos-aarch64
             runner: macos-latest
 
     container:
@@ -36,16 +36,13 @@ jobs:
       - name: Set safe git directory inside container
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Set target arch
-        run: echo "TARGET_ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
-
       - name: Run build script
         run: bash  -c "pwd ; ls -la . ; .ci/scripts/build_in_container.sh"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qdl-${{ matrix.arch }}
+          name: qdl-${{ matrix.platform }}
           path: .out/qdl
 
   release:
