@@ -57,7 +57,7 @@ function build_qdl_macos {
     cp ./qdl ${dst_bin_dir}
     # Note that to make the QDL work, you need to control the location of the dylibs (or add them to a standard search dir). You can modify the rpath in the binary.
     # for example: install_name_tool -add_rpath "/usr/local/lib/oakctl/" ./qdl
-    tar czf ${OUT_DIR_BASE}/qdl.tar ${dst_bin_dir}/* ${dst_lib_dir}/*
+    tar czf ${OUT_DIR_BASE}/qdl.tar.gz ${dst_bin_dir}/* ${dst_lib_dir}/*
 }
 
 build_libxml
