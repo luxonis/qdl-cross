@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e 
+set -e
 
 git submodule update --init --recursive
 
@@ -21,7 +21,7 @@ function build_libusb {
     popd
 }
 
-function build_qdl {
+function build_qdl_linux {
     pushd qdl
     # Libusb (LGPL) can be statically linked for simplicity since https://github.com/luxonis/qdl-cross is provided.
     # https://www.gnu.org/licenses/gpl-faq.html#GPLIncompatibleLibs
@@ -30,6 +30,24 @@ function build_qdl {
     popd
 }
 
+function build_qdl_macos {
+    pushd qdl
+    make -j8 CFLAGS='-I ../libxml2/include/ -I ../libusb/libusb/' LDFLAGS='-L ../libusb/libusb/.libs/ -lusb1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
+    dst_lib_dir=${OUT_DIR}/lib/
+    dst_bin_dir=${OUT_DIR}/bin/
+    mkdir -p ${dst_bin_dir}
+    mkdir -p ${dst_lib_dir}
+    cp ../libxml2/.libs/libxml2.16.dlib ${dst_lib_dir}
+    cp ../libusb/libusb/.libs/libusb-1.0.0.dylib ${dst_lib_dir}
+    cp ./qdl ${dst_bin_dir}
+    # Note that to make the QDL work, you need to control the location of the dylibs (or add them to a standard search dir). You can modify the rpath in the binary.
+    # for example: install_name_tool -add_rpath "/usr/local/lib/oakctl/" ./qdl
+}
+
 build_libxml
 build_libusb
-build_qdl
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    build_qdl_macos
+else
+    build_qdl_linux
+fi
