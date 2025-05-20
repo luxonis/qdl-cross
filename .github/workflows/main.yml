@@ -4,25 +4,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build (${{ matrix.platform }})
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        include:
-          - platform: linux-x86
-            runner: ubuntu-latest
-          # - arch: aarch64
-          #   runner: ubuntu-22.04-arm  # Or ubuntu-24.04-arm
-          - platform: macos-x86
-            runner: macos-13
-          - platform: macos-aarch64
-            runner: macos-latest
-
+  build-linux-x86:
+    name: Build (linux-x86)
+    runs-on: ubuntu-latest
     container:
       image: alpine:latest
-      options: --init  # optional but good for PID 1 handling
-
+      options: --init
     steps:
       - name: Install git
         run: apk add --no-cache git
@@ -37,17 +24,43 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run build script
-        run: bash  -c "pwd ; ls -la . ; .ci/scripts/build_in_container.sh"
+        run: bash -c "pwd ; ls -la . ; .ci/scripts/build_in_container.sh"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qdl-linux-x86
+          path: .out/qdl
+
+  build-non-container:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - platform: macos-x86
+            runner: macos-13
+          - platform: macos-aarch64
+            runner: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: .ci/scripts/install_dependencies_macos.sh
+
+      - name: Run build script
+        run: .ci/scripts/build_in_container.sh"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: qdl-${{ matrix.platform }}
-          path: .out/qdl
+          path: .out/qdl/qdl.tar
 
   release:
     name: Publish Latest Release
-    needs: build
+    needs: [build-linux-x86, build-non-container]
     runs-on: ubuntu-latest
 
     steps:
@@ -64,6 +77,5 @@ jobs:
           files: artifacts/**/*
           prerelease: false
           draft: false
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
