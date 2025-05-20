@@ -7,17 +7,32 @@ SCRIPT_DIR=$(dirname $(realpath "$0"))
 OUT_DIR=${SCRIPT_DIR}/.out/qdl/
 mkdir -p $OUT_DIR
 
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    is_macos=true
+else
+    is_macos=false
+fi
+
+
 function build_libxml {
     pushd libxml2
     ./autogen.sh
-    make -j8 LDFLAGS=-static
+    if $is_macos ; then
+        make -j8
+    else
+        make -j8 LDFLAGS=-static
+    fi;
     popd
 }
 
 function build_libusb {
     pushd libusb
     ./autogen.sh --disable-udev
-    make -j8 LDFLAGS=-static
+    if $is_macos ; then
+        make -j8
+    else
+        make -j8 LDFLAGS=-static
+    fi;
     popd
 }
 
@@ -32,12 +47,12 @@ function build_qdl_linux {
 
 function build_qdl_macos {
     pushd qdl
-    make -j8 CFLAGS='-I ../libxml2/include/ -I ../libusb/libusb/' LDFLAGS='-L ../libusb/libusb/.libs/ -lusb1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
+    make -j8 CFLAGS='-I ../libxml2/include/ -I ../libusb/libusb/' LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
     dst_lib_dir=${OUT_DIR}/lib/
     dst_bin_dir=${OUT_DIR}/bin/
     mkdir -p ${dst_bin_dir}
     mkdir -p ${dst_lib_dir}
-    cp ../libxml2/.libs/libxml2.16.dlib ${dst_lib_dir}
+    cp ../libxml2/.libs/libxml2.16.dylib ${dst_lib_dir}
     cp ../libusb/libusb/.libs/libusb-1.0.0.dylib ${dst_lib_dir}
     cp ./qdl ${dst_bin_dir}
     # Note that to make the QDL work, you need to control the location of the dylibs (or add them to a standard search dir). You can modify the rpath in the binary.
@@ -46,7 +61,7 @@ function build_qdl_macos {
 
 build_libxml
 build_libusb
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if $is_macos then
     build_qdl_macos
 else
     build_qdl_linux
