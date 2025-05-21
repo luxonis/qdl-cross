@@ -72,7 +72,7 @@ function build_qdl_macos {
 
 function build_qdl_windows {
     pushd qdl
-    make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
+    make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2'
     dst_lib_dir="${OUT_DIR_QDL}/lib/"
     dst_bin_dir="${OUT_DIR_QDL}/bin/"
     mkdir -p "${dst_bin_dir}" "${dst_lib_dir}"
