@@ -74,7 +74,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-cc mingw-w64-x86_64-autotools
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-autotools
 
       - name: Checkout repository
         uses: actions/checkout@v4
