@@ -32,7 +32,7 @@ jobs:
           name: qdl-linux-x86
           path: .out/qdl
 
-  build-non-container:
+  build-macos:
     name: Build (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -58,9 +58,36 @@ jobs:
           name: qdl-${{ matrix.platform }}
           path: .out/qdl-${{ matrix.platform }}.tar
 
+  build-windows:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - platform: windows-x86
+            runner: windows-latest
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-cc mingw-w64-x86_64-autotools
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run build script
+        run: .ci/scripts/build_in_container.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qdl-${{ matrix.platform }}
+          path: .out/qdl-${{ matrix.platform }}.tar
+
   release:
     name: Publish Latest Release
-    needs: [build-linux-x86, build-non-container]
+    needs: [build-linux-x86, build-macos, build-windows]
     runs-on: ubuntu-latest
 
     steps:

@@ -14,13 +14,25 @@ else
     is_macos=false
 fi
 
+if [[ "$OSTYPE" == "win32" || "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+    is_windows=true
+else
+    is_windows=false
+fi
+
+if [[ $is_windows || $is_macos ]]; then
+    compile_static=false
+else
+    compile_static=true
+fi
+
 function build_libxml {
     pushd libxml2
     ./autogen.sh
-    if $is_macos; then
-        make -j8
-    else
+    if $compile_static; then
         make -j8 LDFLAGS=-static
+    else
+        make -j8
     fi
     popd
 }
@@ -28,10 +40,10 @@ function build_libxml {
 function build_libusb {
     pushd libusb
     ./autogen.sh --disable-udev
-    if $is_macos; then
-        make -j8
-    else
+    if $compile_static; then
         make -j8 LDFLAGS=-static
+    else
+        make -j8
     fi
     popd
 }
@@ -62,10 +74,27 @@ function build_qdl_macos {
     tar czf ${OUT_DIR_BASE}/qdl.tar.gz ${dst_bin_dir}/* ${dst_lib_dir}/*
 }
 
+function build_qdl_windows {
+    pushd qdl
+    make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
+    dst_lib_dir=${OUT_DIR_QDL}/lib/
+    dst_bin_dir=${OUT_DIR_QDL}/bin/
+    mkdir -p ${dst_bin_dir}
+    mkdir -p ${dst_lib_dir}
+    cp ../libxml2/.libs/libxml2-16.dll ${dst_lib_dir}
+    cp ../libusb/libusb/.libs/libusb-1.0.dll ${dst_lib_dir}
+    cp ./qdl ${dst_bin_dir}
+    # Note that to make the QDL work, you need to control the location of the dylibs (or add them to a standard search dir). You can modify the rpath in the binary.
+    # for example: install_name_tool -add_rpath "/usr/local/lib/oakctl/" ./qdl
+    tar czf ${OUT_DIR_BASE}/qdl.tar.gz ${dst_bin_dir}/* ${dst_lib_dir}/*
+}
+
 build_libxml
 build_libusb
 if $is_macos; then
     build_qdl_macos
+elif $is_windows; then
+    build_qdl_windows
 else
     build_qdl_linux
 fi
