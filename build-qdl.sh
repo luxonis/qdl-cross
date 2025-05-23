@@ -68,7 +68,7 @@ function build_qdl_macos {
     cp ./qdl "${dst_bin_dir}"
     pushd "${OUT_DIR_QDL}"
     ls -lah ./
-    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" "./*"
+    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" .
     popd
     popd
 }
@@ -84,7 +84,7 @@ function build_qdl_windows {
     cp ./qdl "${dst_bin_dir}"
     pushd "${OUT_DIR_QDL}"
     ls -lah ./
-    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" "./*"
+    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" .
     popd
     popd
 }
