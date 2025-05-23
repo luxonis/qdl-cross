@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "release-*"
+      - "latest"
 jobs:
   build-linux-x86:
     name: Build (linux-x86)
