@@ -113,27 +113,15 @@ jobs:
 
       - name: Generate dated tag
         id: generate_tag
-        run: echo "tag=$(date +'%Y-%m-%d-%H%M%S')" >> $GITHUB_OUTPUT
-
-      - name: Configure Git
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@users.noreply.github.com"
-
-      - name: Fetch commit SHA
-        id: commit_sha
-        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Create or move 'latest' tag
-        run: |
-          git tag -f latest ${{ steps.commit_sha.outputs.sha }}
-          git push --force origin latest
+          release_name="Release $(date +'%Y-%m-%d-%H%M')"
+          echo "release_name=${release_name}" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Release ${{ steps.generate_tag.outputs.tag }}
-          tag_name: ${{ steps.generate_tag.outputs.tag }}
+          name: ${{ steps.generate_tag.outputs.release_name }}
+          tag_name: latest
           files: |
             artifacts/qdl-linux-x86
             artifacts/qdl-macos-x86.tar.gz
