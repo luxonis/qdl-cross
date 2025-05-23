@@ -11,8 +11,8 @@ jobs:
       image: alpine:latest
       options: --init
     steps:
-      - name: Install git
-        run: apk add --no-cache git
+      - name: Install git and tar
+        run: apk add --no-cache git tar gzip
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run build script
-        run: bash -c "pwd ; ls -la . ; .ci/scripts/build_in_container.sh"
+        run: .ci/scripts/build_in_container.sh
 
       - name: Rename binary
         run: |
@@ -59,16 +59,11 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: .ci/scripts/build_in_container.sh
 
-      - name: Zip binary
-        run: |
-          mkdir -p artifacts
-          zip -j artifacts/qdl-${{ matrix.platform }}.zip .out/qdl
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: qdl-${{ matrix.platform }}
-          path: artifacts/qdl-${{ matrix.platform }}.zip
+          path: .out/qdl-${{ matrix.platform }}.tar.gz
 
   build-windows:
     name: Build (Windows)
@@ -96,16 +91,11 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: .ci/scripts/build_in_container.sh
 
-      - name: Zip binary
-        run: |
-          mkdir -p artifacts
-          zip -j artifacts/qdl-${{ matrix.platform }}.zip .out/qdl
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: qdl-${{ matrix.platform }}
-          path: artifacts/qdl-${{ matrix.platform }}.zip
+          path: .out/qdl-${{ matrix.platform }}.tar.gz
 
   release:
     name: Publish Dated Release
@@ -128,9 +118,9 @@ jobs:
           tag_name: ${{ steps.generate_tag.outputs.tag }}
           files: |
             artifacts/qdl-linux-x86
-            artifacts/qdl-macos-x86.zip
-            artifacts/qdl-macos-aarch64.zip
-            artifacts/qdl-windows-x86.zip
+            artifacts/qdl-macos-x86.tar.gz
+            artifacts/qdl-macos-aarch64.tar.gz
+            artifacts/qdl-windows-x86.tar.gz
           prerelease: false
           draft: false
         env:

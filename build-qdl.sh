@@ -66,9 +66,9 @@ function build_qdl_macos {
     cp ../libxml2/.libs/libxml2.16.dylib "${dst_lib_dir}"
     cp ../libusb/libusb/.libs/libusb-1.0.0.dylib "${dst_lib_dir}"
     cp ./qdl "${dst_bin_dir}"
-    # pushd "${OUT_DIR_QDL}"
-    # tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" "./*"
-    # popd
+    pushd "${OUT_DIR_QDL}"
+    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" "./*"
+    popd
     popd
 }
 
@@ -81,9 +81,9 @@ function build_qdl_windows {
     cp ../libxml2/.libs/libxml2-16.dll "${dst_lib_dir}"
     cp ../libusb/libusb/.libs/libusb-1.0.dll "${dst_lib_dir}"
     cp ./qdl "${dst_bin_dir}"
-    # pushd "${OUT_DIR_QDL}"
-    # tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" "./*"
-    # popd
+    pushd "${OUT_DIR_QDL}"
+    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" "./*"
+    popd
     popd
 }
 
