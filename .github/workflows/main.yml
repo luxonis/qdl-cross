@@ -29,13 +29,13 @@ jobs:
       - name: Rename binary
         run: |
           mkdir -p artifacts
-          cp .out/qdl/qdl artifacts/qdl-linux-x86
+          cp .out/qdl/qdl artifacts/qdl-linux-x86_64
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qdl-linux-x86
-          path: artifacts/qdl-linux-x86
+          name: qdl-linux-x86_64
+          path: artifacts/qdl-linux-x86_64
 
   build-macos:
     name: Build (macOS)
@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: macos-x86
+          - platform: macos-x86_64
             runner: macos-13
           - platform: macos-aarch64
             runner: macos-latest
@@ -71,7 +71,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: windows-x86
+          - platform: windows-x86_64
             runner: windows-latest
     defaults:
       run:
@@ -109,6 +109,7 @@ jobs:
 
       - name: Flatten artifacts
         run: |
+          ls -lah ./artifacts/
           find artifacts -type f -exec mv {} artifacts/ \;
 
       - name: Generate dated tag
@@ -123,8 +124,8 @@ jobs:
           name: ${{ steps.generate_tag.outputs.release_name }}
           tag_name: latest
           files: |
-            artifacts/qdl-linux-x86
-            artifacts/qdl-macos-x86.tar.gz
+            artifacts/qdl-linux-x86_64
+            artifacts/qdl-macos-x86_64.tar.gz
             artifacts/qdl-macos-aarch64.tar.gz
             artifacts/qdl-windows-x86.tar.gz
           prerelease: false
