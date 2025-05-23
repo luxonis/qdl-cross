@@ -108,7 +108,7 @@ jobs:
           path: artifacts/qdl-${{ matrix.platform }}.zip
 
   release:
-    name: Publish Latest Release
+    name: Publish Dated Release
     needs: [build-linux-x86, build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
@@ -117,11 +117,15 @@ jobs:
         with:
           path: artifacts
 
+      - name: Generate tag
+        id: generate_tag
+        run: echo "tag=$(date +'%Y-%m-%d-%H%M%S')" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: latest
-          tag_name: latest
+          name: Release ${{ steps.generate_tag.outputs.tag }}
+          tag_name: ${{ steps.generate_tag.outputs.tag }}
           files: |
             artifacts/qdl-linux-x86
             artifacts/qdl-macos-x86.zip
