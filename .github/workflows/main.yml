@@ -107,9 +107,27 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate tag
+      - name: Flatten artifacts
+        run: |
+          find artifacts -type f -exec mv {} artifacts/ \;
+
+      - name: Generate dated tag
         id: generate_tag
         run: echo "tag=$(date +'%Y-%m-%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+
+      - name: Fetch commit SHA
+        id: commit_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Create or move 'latest' tag
+        run: |
+          git tag -f latest ${{ steps.commit_sha.outputs.sha }}
+          git push --force origin latest
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
