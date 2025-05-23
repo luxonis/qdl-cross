@@ -1,4 +1,4 @@
-# QDL cross
+# [QDL](https://github.com/linux-msm/qdl) cross
 
 This repository provides build scripts to build:  
 * A fully static qdl for `linux (x86_64)`.  
