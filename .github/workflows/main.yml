@@ -26,22 +26,27 @@ jobs:
       - name: Run build script
         run: bash -c "pwd ; ls -la . ; .ci/scripts/build_in_container.sh"
 
+      - name: Rename binary
+        run: |
+          mkdir -p artifacts
+          cp .out/qdl artifacts/qdl-linux-x86
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: qdl-linux-x86
-          path: .out/qdl
+          path: artifacts/qdl-linux-x86
 
   build-macos:
-    name: Build (${{ matrix.platform }})
+    name: Build (macOS)
     runs-on: ${{ matrix.runner }}
-    # strategy:
-      # matrix:
-        # include:
-          # - platform: macos-x86
-          #   runner: macos-13
-          # - platform: macos-aarch64
-          #   runner: macos-latest
+    strategy:
+      matrix:
+        include:
+          - platform: macos-x86
+            runner: macos-13
+          - platform: macos-aarch64
+            runner: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -54,14 +59,19 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: .ci/scripts/build_in_container.sh
 
+      - name: Zip binary
+        run: |
+          mkdir -p artifacts
+          zip -j artifacts/qdl-${{ matrix.platform }}.zip .out/qdl
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: qdl-${{ matrix.platform }}
-          path: .out/qdl-${{ matrix.platform }}.tar.gz
+          path: artifacts/qdl-${{ matrix.platform }}.zip
 
   build-windows:
-    name: Build (${{ matrix.platform }})
+    name: Build (Windows)
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -86,17 +96,21 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: .ci/scripts/build_in_container.sh
 
+      - name: Zip binary
+        run: |
+          mkdir -p artifacts
+          zip -j artifacts/qdl-${{ matrix.platform }}.zip .out/qdl
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: qdl-${{ matrix.platform }}
-          path: .out/qdl
+          path: artifacts/qdl-${{ matrix.platform }}.zip
 
   release:
     name: Publish Latest Release
     needs: [build-linux-x86, build-macos, build-windows]
     runs-on: ubuntu-latest
-
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -108,7 +122,11 @@ jobs:
         with:
           name: latest
           tag_name: latest
-          files: artifacts/**/*
+          files: |
+            artifacts/qdl-linux-x86
+            artifacts/qdl-macos-x86.zip
+            artifacts/qdl-macos-aarch64.zip
+            artifacts/qdl-windows-x86.zip
           prerelease: false
           draft: false
         env:
