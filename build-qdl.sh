@@ -67,6 +67,8 @@ function build_qdl_macos {
     cp ../libusb/libusb/.libs/libusb-1.0.0.dylib "${dst_lib_dir}"
     cp ./qdl "${dst_bin_dir}"
     install_name_tool -add_rpath "@executable_path/lib" "${dst_bin_dir}/qdl"
+    install_name_tool -change "/usr/local/lib/libxml2.16.dylib" @rpath/libxml2.16.dylib "${dst_bin_dir}/qdl"
+    install_name_tool -change ""/usr/local/lib/libusb-1.0.0.dylib" @rpath/libusb-1.0.0.dylib "${dst_bin_dir}/qdl"
     pushd "${OUT_DIR_BASE}"
     ls -lah ./
     tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" ./qdl
