@@ -61,11 +61,12 @@ function build_qdl_macos {
     pushd qdl
     make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
     dst_lib_dir="${OUT_DIR_QDL}/lib/"
-    dst_bin_dir="${OUT_DIR_QDL}/bin/"
+    dst_bin_dir="${OUT_DIR_QDL}/"
     mkdir -p "${dst_bin_dir}" "${dst_lib_dir}"
     cp ../libxml2/.libs/libxml2.16.dylib "${dst_lib_dir}"
     cp ../libusb/libusb/.libs/libusb-1.0.0.dylib "${dst_lib_dir}"
     cp ./qdl "${dst_bin_dir}"
+    install_name_tool -add_rpath "@executable_path/lib" "${dst_bin_dir}/qdl"
     pushd "${OUT_DIR_BASE}"
     ls -lah ./
     tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" ./qdl
@@ -76,8 +77,9 @@ function build_qdl_macos {
 function build_qdl_windows {
     pushd qdl
     make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2'
-    dst_lib_dir="${OUT_DIR_QDL}/lib/"
-    dst_bin_dir="${OUT_DIR_QDL}/bin/"
+    # ship everything in the same directory on windows.
+    dst_lib_dir="${OUT_DIR_QDL}/"
+    dst_bin_dir="${OUT_DIR_QDL}/"
     mkdir -p "${dst_bin_dir}" "${dst_lib_dir}"
     cp ../libxml2/.libs/libxml2-16.dll "${dst_lib_dir}"
     cp ../libusb/libusb/.libs/libusb-1.0.dll "${dst_lib_dir}"
