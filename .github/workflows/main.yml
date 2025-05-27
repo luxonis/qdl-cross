@@ -32,27 +32,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies (only for Alpine builds)
+      - name: Install dependencies
         if: matrix.container == 'alpine:latest'
         run: .ci/scripts/install_dependencies_alpine.sh
-
-      - name: Prepare dockcross script
-        if: matrix.container == 'dockcross/linux-arm64-musl:latest'
-        run: |
-          chmod +x /dockcross
-          /dockcross > /usr/local/bin/dockcross
-          chmod +x /usr/local/bin/dockcross
 
       - name: Set safe git directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run build script
-        run: |
-          if [ "${{ matrix.container }}" == "alpine:latest" ]; then
-            .ci/scripts/build_in_container.sh
-          else
-            dockcross bash -c ".ci/scripts/build_in_container.sh"
-          fi
+        run: .ci/scripts/build_in_container.sh
 
       - name: Rename binary
         run: |
