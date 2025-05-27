@@ -3,7 +3,7 @@ set -e
 set -x
 
 if [[ "$PLATFORM" == linux-aarch64 ]]; then
-    CROSS_COMPILE_FOR_HOST="aarch64-linux-musl-gcc"
+    CROSS_COMPILE_FOR_HOST="aarch64-linux-musl"
 else
     CROSS_COMPILE_FOR_HOST=""
 fi
