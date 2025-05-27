@@ -39,6 +39,7 @@ jobs:
       - name: Prepare dockcross script
         if: matrix.container == 'dockcross/linux-arm64-musl:latest'
         run: |
+          chmod +x /dockcross
           /dockcross > /usr/local/bin/dockcross
           chmod +x /usr/local/bin/dockcross
 
