@@ -25,20 +25,22 @@ jobs:
       options: --init
 
     steps:
-      - name: Install dependencies (if needed)
+      - name: Install git
         if: matrix.container == 'alpine:latest'
-        run: |
-          apk add --no-cache git tar gzip
-          .ci/scripts/install_dependencies_alpine.sh
+        run: apk add --no-cache git
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (only for Alpine builds)
+        if: matrix.container == 'alpine:latest'
+        run: .ci/scripts/install_dependencies_alpine.sh
 
       - name: Prepare dockcross script
         if: matrix.container == 'dockcross/linux-arm64-musl:latest'
         run: |
           /dockcross > /usr/local/bin/dockcross
           chmod +x /usr/local/bin/dockcross
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Set safe git directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
