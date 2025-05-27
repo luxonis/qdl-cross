@@ -2,6 +2,12 @@
 set -e
 set -x
 
+if [[ "$PLATFORM" == linux-aarch64 ]]; then
+    CROSS_COMPILE_FOR_HOST="aarch64-linux-musl-gcc"
+else
+    CROSS_COMPILE_FOR_HOST=""
+fi
+
 git submodule update --init --recursive
 
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
@@ -27,8 +33,13 @@ else
 fi
 
 function build_libxml {
+    host=${1:-}
     pushd libxml2
-    ./autogen.sh
+    if [[ -n "$host" ]]; then
+        ./autogen.sh --host="$host"
+    else
+        ./autogen.sh
+    fi
     if ((compile_static)); then
         make -j8 LDFLAGS=-static
     else
@@ -38,8 +49,13 @@ function build_libxml {
 }
 
 function build_libusb {
+    host=${1:-}
     pushd libusb
-    ./autogen.sh --disable-udev
+    if [[ -n "$host" ]]; then
+        ./autogen.sh --disable-udev --host="$host"
+    else
+        ./autogen.sh --disable-udev
+    fi
     if ((compile_static)); then
         make -j8 LDFLAGS=-static
     else
@@ -93,8 +109,8 @@ function build_qdl_windows {
     popd
 }
 
-build_libxml
-build_libusb
+build_libxml "${CROSS_COMPILE_FOR_HOST}"
+build_libusb "${CROSS_COMPILE_FOR_HOST}"
 
 if ((is_macos)); then
     build_qdl_macos

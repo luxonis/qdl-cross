@@ -5,39 +5,62 @@ on:
   push:
     tags:
       - "latest"
+
 jobs:
-  build-linux-x86:
-    name: Build (linux-x86)
+  build-linux:
+    name: Build (${{ matrix.platform }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x86_64
+            container: alpine:latest
+            rename: qdl-linux-x86_64
+          - platform: linux-aarch64
+            container: dockcross/linux-arm64-musl:latest
+            rename: qdl-linux-aarch64
+
     container:
-      image: alpine:latest
+      image: ${{ matrix.container }}
       options: --init
+
     steps:
-      - name: Install git and tar
-        run: apk add --no-cache git tar gzip
+      - name: Install dependencies (if needed)
+        if: matrix.container == 'alpine:latest'
+        run: |
+          apk add --no-cache git tar gzip
+          .ci/scripts/install_dependencies_alpine.sh
+
+      - name: Prepare dockcross script
+        if: matrix.container == 'dockcross/linux-arm64-musl:latest'
+        run: |
+          /dockcross > /usr/local/bin/dockcross
+          chmod +x /usr/local/bin/dockcross
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: .ci/scripts/install_dependencies_alpine.sh
-
-      - name: Set safe git directory inside container
+      - name: Set safe git directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run build script
-        run: .ci/scripts/build_in_container.sh
+        run: |
+          if [ "${{ matrix.container }}" == "alpine:latest" ]; then
+            .ci/scripts/build_in_container.sh
+          else
+            dockcross bash -c ".ci/scripts/build_in_container.sh"
+          fi
 
       - name: Rename binary
         run: |
           mkdir -p artifacts
-          cp .out/qdl/qdl artifacts/qdl-linux-x86_64
+          cp .out/qdl/qdl artifacts/${{ matrix.rename }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qdl-linux-x86_64
-          path: artifacts/qdl-linux-x86_64
+          name: ${{ matrix.rename }}
+          path: artifacts/${{ matrix.rename }}
 
   build-macos:
     name: Build (macOS)
@@ -101,7 +124,7 @@ jobs:
 
   release:
     name: Publish Dated Release
-    needs: [build-linux-x86, build-macos, build-windows]
+    needs: [build-linux-x86, build-linux-aarch64, build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -123,6 +146,7 @@ jobs:
           tag_name: latest
           files: |
             artifacts/qdl-linux-x86_64/qdl-linux-x86_64
+            artifacts/qdl-linux-aarch64/qdl-linux-aarch64
             artifacts/qdl-macos-x86_64/qdl-macos-x86_64.tar.gz
             artifacts/qdl-macos-aarch64/qdl-macos-aarch64.tar.gz
             artifacts/qdl-windows-x86_64/qdl-windows-x86_64.tar.gz
