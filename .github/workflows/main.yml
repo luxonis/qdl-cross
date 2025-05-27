@@ -40,6 +40,8 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run build script
+        env:
+          PLATFORM: ${{ matrix.platform }}
         run: .ci/scripts/build_in_container.sh
 
       - name: Rename binary
