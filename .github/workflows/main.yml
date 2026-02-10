@@ -115,9 +115,88 @@ jobs:
           name: qdl-${{ matrix.platform }}
           path: .out/qdl-${{ matrix.platform }}.tar.gz
 
+  sign-windows:
+    name: Sign (Windows)
+    needs: [build-windows]
+    environment: windows-signing
+    runs-on: ["self-hosted", "win-signing-runner"]
+    defaults:
+      run:
+        shell: cmd
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: qdl-windows-x86_64
+          path: artifacts/qdl-windows-x86_64
+
+      - name: Extract Windows artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $inDir  = Join-Path $env:GITHUB_WORKSPACE "artifacts\qdl-windows-x86_64"
+          $tgz    = Join-Path $inDir "qdl-windows-x86_64.tar.gz"
+          $outDir = Join-Path $inDir "extracted"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+
+          if (!(Test-Path $tgz)) { throw "Missing artifact: $tgz" }
+
+          # Ensure tar is available (Windows runner usually has it)
+          tar -xf $tgz -C $outDir
+
+          Write-Host "Extracted contents:"
+          Get-ChildItem -Recurse $outDir | ForEach-Object { $_.FullName }
+
+      - name: Sign all EXE and DLL files
+        run: |
+          @echo on
+          setlocal enabledextensions
+
+          set "SIGNTOOL=C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\signtool.exe"
+          set "CERT=C:\luxonis.cer"
+          set "CSP=eToken Base Cryptographic Provider"
+          set "CONTAINER=[{{${{ secrets.SECTIGO_CERT_PASSWORD }}}}]=Sectigo_20241111150706"
+          set "URL=http://timestamp.sectigo.com"
+          set "COMMON_ARGS=/f "%CERT%" /csp "%CSP%" /k "%CONTAINER%" /tr %URL% /td sha256 /fd sha256 /n "Luxonis Holding Corporation" /d "qdl""
+
+          cd /d "%GITHUB_WORKSPACE%\artifacts\qdl-windows-x86_64\extracted"
+          if errorlevel 1 exit /b 1
+
+          for /r %%F in (*.exe *.dll) do (
+            echo Signing "%%F"
+            "%SIGNTOOL%" sign %COMMON_ARGS% "%%F"
+            if errorlevel 1 exit /b 1
+          )
+
+      - name: Repack signed Windows artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $baseDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\qdl-windows-x86_64"
+          $outDir  = Join-Path $baseDir "extracted"
+          $tgzOut  = Join-Path $baseDir "qdl-windows-x86_64.tar.gz"
+
+          if (!(Test-Path $outDir)) { throw "Missing extracted dir: $outDir" }
+
+          # Recreate the tar.gz in-place (matching the original artifact filename)
+          Remove-Item -Force $tgzOut -ErrorAction SilentlyContinue
+          Push-Location $outDir
+          tar -czf $tgzOut *
+          Pop-Location
+
+          Write-Host "Repacked signed artifact: $tgzOut"
+          Get-Item $tgzOut | Format-List *
+
+      - name: Upload signed Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qdl-windows-x86_64
+          path: artifacts/qdl-windows-x86_64/qdl-windows-x86_64.tar.gz
+          overwrite: true
+
   release:
     name: Publish Dated Release
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, sign-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
