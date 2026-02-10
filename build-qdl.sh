@@ -1,37 +1,65 @@
 #!/bin/bash
 set -e
+set -x
+
+if [[ "$PLATFORM" == linux-aarch64 ]]; then
+    CROSS_COMPILE_FOR_HOST="aarch64-linux-musl"
+else
+    CROSS_COMPILE_FOR_HOST=""
+fi
 
 git submodule update --init --recursive
 
-SCRIPT_DIR=$(dirname $(realpath "$0"))
-OUT_DIR_BASE=${SCRIPT_DIR}/.out
-OUT_DIR_QDL=${OUT_DIR_BASE}/qdl
-mkdir -p $OUT_DIR_QDL
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+OUT_DIR_BASE="${SCRIPT_DIR}/.out"
+OUT_DIR_QDL="${OUT_DIR_BASE}/qdl"
+mkdir -p "${OUT_DIR_QDL}"
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    is_macos=true
+# Determine OS
+is_macos=0
+is_windows=0
+
+if [[ "$OSTYPE" == darwin* ]]; then
+    is_macos=1
+elif [[ "$OSTYPE" == win32 || "$OSTYPE" == msys || "$OSTYPE" == cygwin ]]; then
+    is_windows=1
+fi
+
+# Static linking is only for non-Windows and non-macOS
+if ((is_windows || is_macos)); then
+    compile_static=0
 else
-    is_macos=false
+    compile_static=1
 fi
 
 function build_libxml {
+    host=${1:-}
     pushd libxml2
-    ./autogen.sh
-    if $is_macos; then
-        make -j8
+    if [[ -n "$host" ]]; then
+        ./autogen.sh --host="$host"
     else
+        ./autogen.sh
+    fi
+    if ((compile_static)); then
         make -j8 LDFLAGS=-static
+    else
+        make -j8
     fi
     popd
 }
 
 function build_libusb {
+    host=${1:-}
     pushd libusb
-    ./autogen.sh --disable-udev
-    if $is_macos; then
-        make -j8
+    if [[ -n "$host" ]]; then
+        ./autogen.sh --disable-udev --host="$host"
     else
+        ./autogen.sh --disable-udev
+    fi
+    if ((compile_static)); then
         make -j8 LDFLAGS=-static
+    else
+        make -j8
     fi
     popd
 }
@@ -40,32 +68,54 @@ BUILD_QDL_CFLAGS_COMMON='-I ../libxml2/include/ -I ../libusb/libusb/ -O2 -Wall -
 
 function build_qdl_linux {
     pushd qdl
-    # Libusb (LGPL) can be statically linked for simplicity since https://github.com/luxonis/qdl-cross is provided.
-    # https://www.gnu.org/licenses/gpl-faq.html#GPLIncompatibleLibs
     make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-static ../libusb/libusb/.libs/libusb-1.0.a ../libxml2/.libs/libxml2.a -lm -lc'
-    cp ./qdl ${OUT_DIR_QDL}
+    cp ./qdl "${OUT_DIR_QDL}"
     popd
 }
 
 function build_qdl_macos {
     pushd qdl
     make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2 -lm -lc'
-    dst_lib_dir=${OUT_DIR_QDL}/lib/
-    dst_bin_dir=${OUT_DIR_QDL}/bin/
-    mkdir -p ${dst_bin_dir}
-    mkdir -p ${dst_lib_dir}
-    cp ../libxml2/.libs/libxml2.16.dylib ${dst_lib_dir}
-    cp ../libusb/libusb/.libs/libusb-1.0.0.dylib ${dst_lib_dir}
-    cp ./qdl ${dst_bin_dir}
-    # Note that to make the QDL work, you need to control the location of the dylibs (or add them to a standard search dir). You can modify the rpath in the binary.
-    # for example: install_name_tool -add_rpath "/usr/local/lib/oakctl/" ./qdl
-    tar czf ${OUT_DIR_BASE}/qdl.tar.gz ${dst_bin_dir}/* ${dst_lib_dir}/*
+    dst_lib_dir="${OUT_DIR_QDL}/lib/"
+    dst_bin_dir="${OUT_DIR_QDL}/"
+    mkdir -p "${dst_bin_dir}" "${dst_lib_dir}"
+    cp ../libxml2/.libs/libxml2.16.dylib "${dst_lib_dir}"
+    cp ../libusb/libusb/.libs/libusb-1.0.0.dylib "${dst_lib_dir}"
+    cp ./qdl "${dst_bin_dir}"
+    install_name_tool -add_rpath "@executable_path/lib" "${dst_bin_dir}/qdl"
+    install_name_tool -change "/usr/local/lib/libxml2.16.dylib" @rpath/libxml2.16.dylib "${dst_bin_dir}/qdl"
+    install_name_tool -change "/usr/local/lib/libusb-1.0.0.dylib" @rpath/libusb-1.0.0.dylib "${dst_bin_dir}/qdl"
+    pushd "${OUT_DIR_BASE}"
+    ls -lah ./
+    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" ./qdl
+    popd
+    popd
 }
 
-build_libxml
-build_libusb
-if $is_macos; then
+function build_qdl_windows {
+    pushd qdl
+    make -j8 CFLAGS="${BUILD_QDL_CFLAGS_COMMON}" LDFLAGS='-L ../libusb/libusb/.libs/ -lusb-1.0 -L ../libxml2/.libs/ -lxml2'
+    # ship everything in the same directory on windows.
+    dst_lib_dir="${OUT_DIR_QDL}/"
+    dst_bin_dir="${OUT_DIR_QDL}/"
+    mkdir -p "${dst_bin_dir}" "${dst_lib_dir}"
+    cp ../libxml2/.libs/libxml2-16.dll "${dst_lib_dir}"
+    cp ../libusb/libusb/.libs/libusb-1.0.dll "${dst_lib_dir}"
+    cp ./qdl "${dst_bin_dir}"
+    pushd "${OUT_DIR_BASE}"
+    ls -lah ./
+    tar czf "${OUT_DIR_BASE}/qdl-${PLATFORM}.tar.gz" ./qdl
+    popd
+    popd
+}
+
+build_libxml "${CROSS_COMPILE_FOR_HOST}"
+build_libusb "${CROSS_COMPILE_FOR_HOST}"
+
+if ((is_macos)); then
     build_qdl_macos
+elif ((is_windows)); then
+    build_qdl_windows
 else
     build_qdl_linux
 fi
