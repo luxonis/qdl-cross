@@ -138,7 +138,7 @@ jobs:
           set "SIGNTOOL=C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\signtool.exe"
           set "CERT=C:\luxonis.cer"
           set "CSP=eToken Base Cryptographic Provider"
-          set "CONTAINER=[${{ secrets.SECTIGO_CERT_PASSWORD }}]=Sectigo_20241111150706"
+          set "CONTAINER=[{{${{ secrets.SECTIGO_CERT_PASSWORD }}}}]=Sectigo_20241111150706"
           set "URL=http://timestamp.sectigo.com"
           set "COMMON_ARGS=/f "%CERT%" /csp "%CSP%" /kc "%CONTAINER%" /tr %URL% /td sha256 /fd sha256 /n "Luxonis Holding Corporation" /d "qdl""
 
