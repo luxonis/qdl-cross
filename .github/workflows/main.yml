@@ -128,26 +128,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: qdl-windows-x86_64
-          path: artifacts/qdl-windows-x86_64
+          path: artifacts\qdl-windows-x86_64
 
-      - name: Extract Windows artifact
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $inDir  = Join-Path $env:GITHUB_WORKSPACE "artifacts\qdl-windows-x86_64"
-          $tgz    = Join-Path $inDir "qdl-windows-x86_64.tar.gz"
-          $outDir = Join-Path $inDir "extracted"
-          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-
-          if (!(Test-Path $tgz)) { throw "Missing artifact: $tgz" }
-
-          # Ensure tar is available (Windows runner usually has it)
-          tar -xf $tgz -C $outDir
-
-          Write-Host "Extracted contents:"
-          Get-ChildItem -Recurse $outDir | ForEach-Object { $_.FullName }
-
-      - name: Sign all EXE and DLL files
+      - name: Extract, sign, repack (no pwsh)
         run: |
           @echo on
           setlocal enabledextensions
@@ -155,43 +138,59 @@ jobs:
           set "SIGNTOOL=C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\signtool.exe"
           set "CERT=C:\luxonis.cer"
           set "CSP=eToken Base Cryptographic Provider"
-          set "CONTAINER=[{{${{ secrets.SECTIGO_CERT_PASSWORD }}}}]=Sectigo_20241111150706"
+          set "CONTAINER=[${{ secrets.SECTIGO_CERT_PASSWORD }}]=Sectigo_20241111150706"
           set "URL=http://timestamp.sectigo.com"
-          set "COMMON_ARGS=/f "%CERT%" /csp "%CSP%" /k "%CONTAINER%" /tr %URL% /td sha256 /fd sha256 /n "Luxonis Holding Corporation" /d "qdl""
+          set "COMMON_ARGS=/f "%CERT%" /csp "%CSP%" /kc "%CONTAINER%" /tr %URL% /td sha256 /fd sha256 /n "Luxonis Holding Corporation" /d "qdl""
 
-          cd /d "%GITHUB_WORKSPACE%\artifacts\qdl-windows-x86_64\extracted"
+          set "BASE=%GITHUB_WORKSPACE%\artifacts\qdl-windows-x86_64"
+          set "TGZ=%BASE%\qdl-windows-x86_64.tar.gz"
+          set "OUT=%BASE%\extracted"
+
+          echo BASE=%BASE%
+          echo TGZ=%TGZ%
+          echo OUT=%OUT%
+
+          if not exist "%TGZ%" (
+            echo ERROR: Missing artifact "%TGZ%"
+            dir /s /b "%GITHUB_WORKSPACE%\artifacts"
+            exit /b 1
+          )
+
+          if exist "%OUT%" rmdir /s /q "%OUT%"
+          mkdir "%OUT%"
           if errorlevel 1 exit /b 1
 
-          for /r %%F in (*.exe *.dll) do (
+          echo Extracting...
+          tar -xf "%TGZ%" -C "%OUT%"
+          if errorlevel 1 exit /b 1
+
+          echo Contents to sign:
+          dir /s /b "%OUT%"
+
+          echo Signing all EXE and DLL files...
+          for /r "%OUT%" %%F in (*.exe *.dll) do (
             echo Signing "%%F"
             "%SIGNTOOL%" sign %COMMON_ARGS% "%%F"
             if errorlevel 1 exit /b 1
           )
 
-      - name: Repack signed Windows artifact
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $baseDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\qdl-windows-x86_64"
-          $outDir  = Join-Path $baseDir "extracted"
-          $tgzOut  = Join-Path $baseDir "qdl-windows-x86_64.tar.gz"
+          echo Repacking...
+          del /f /q "%TGZ%"
+          if errorlevel 1 exit /b 1
 
-          if (!(Test-Path $outDir)) { throw "Missing extracted dir: $outDir" }
+          pushd "%OUT%"
+          tar -czf "%TGZ%" *
+          if errorlevel 1 exit /b 1
+          popd
 
-          # Recreate the tar.gz in-place (matching the original artifact filename)
-          Remove-Item -Force $tgzOut -ErrorAction SilentlyContinue
-          Push-Location $outDir
-          tar -czf $tgzOut *
-          Pop-Location
-
-          Write-Host "Repacked signed artifact: $tgzOut"
-          Get-Item $tgzOut | Format-List *
+          echo Signed artifact ready:
+          dir "%TGZ%"
 
       - name: Upload signed Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: qdl-windows-x86_64
-          path: artifacts/qdl-windows-x86_64/qdl-windows-x86_64.tar.gz
+          path: artifacts\qdl-windows-x86_64\qdl-windows-x86_64.tar.gz
           overwrite: true
 
   release:
