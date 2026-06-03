@@ -98,9 +98,12 @@ function build_qdl_windows {
     # ship everything in the same directory on windows.
     dst_lib_dir="${OUT_DIR_QDL}/"
     dst_bin_dir="${OUT_DIR_QDL}/"
+    mingw_bin_dir="${MINGW_PREFIX:-/mingw64}/bin"
     mkdir -p "${dst_bin_dir}" "${dst_lib_dir}"
     cp ../libxml2/.libs/libxml2-16.dll "${dst_lib_dir}"
     cp ../libusb/libusb/.libs/libusb-1.0.dll "${dst_lib_dir}"
+    cp "${mingw_bin_dir}/libiconv-2.dll" "${dst_lib_dir}"
+    cp "${mingw_bin_dir}/libcharset-1.dll" "${dst_lib_dir}"
     cp ./qdl "${dst_bin_dir}"
     pushd "${OUT_DIR_BASE}"
     ls -lah ./
