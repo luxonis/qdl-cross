@@ -62,7 +62,7 @@ jobs:
       matrix:
         include:
           - platform: macos-x86_64
-            runner: macos-13
+            runner: macos-15-intel
           - platform: macos-aarch64
             runner: macos-latest
     steps:
@@ -115,9 +115,87 @@ jobs:
           name: qdl-${{ matrix.platform }}
           path: .out/qdl-${{ matrix.platform }}.tar.gz
 
+  sign-windows:
+    name: Sign (Windows)
+    needs: [build-windows]
+    environment: windows-signing
+    runs-on: ["self-hosted", "win-signing-runner"]
+    defaults:
+      run:
+        shell: cmd
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: qdl-windows-x86_64
+          path: artifacts\qdl-windows-x86_64
+
+      - name: Extract, sign, repack (no pwsh)
+        run: |
+          @echo on
+          setlocal enabledextensions
+
+          set "SIGNTOOL=C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\signtool.exe"
+          set "CERT=C:\luxonis.cer"
+          set "CSP=eToken Base Cryptographic Provider"
+          set "CONTAINER=[{{${{ secrets.SECTIGO_CERT_PASSWORD }}}}]=Sectigo_20241111150706"
+          set "URL=http://timestamp.sectigo.com"
+          set "COMMON_ARGS=/f "%CERT%" /csp "%CSP%" /kc "%CONTAINER%" /tr %URL% /td sha256 /fd sha256 /n "Luxonis Holding Corporation" /d "qdl""
+
+          set "BASE=%GITHUB_WORKSPACE%\artifacts\qdl-windows-x86_64"
+          set "TGZ=%BASE%\qdl-windows-x86_64.tar.gz"
+          set "OUT=%BASE%\extracted"
+
+          echo BASE=%BASE%
+          echo TGZ=%TGZ%
+          echo OUT=%OUT%
+
+          if not exist "%TGZ%" (
+            echo ERROR: Missing artifact "%TGZ%"
+            dir /s /b "%GITHUB_WORKSPACE%\artifacts"
+            exit /b 1
+          )
+
+          if exist "%OUT%" rmdir /s /q "%OUT%"
+          mkdir "%OUT%"
+          if errorlevel 1 exit /b 1
+
+          echo Extracting...
+          tar -xf "%TGZ%" -C "%OUT%"
+          if errorlevel 1 exit /b 1
+
+          echo Contents to sign:
+          dir /s /b "%OUT%"
+
+          echo Signing all EXE and DLL files...
+          for /r "%OUT%" %%F in (*.exe *.dll) do (
+            echo Signing "%%F"
+            "%SIGNTOOL%" sign %COMMON_ARGS% "%%F"
+            if errorlevel 1 exit /b 1
+          )
+
+          echo Repacking...
+          del /f /q "%TGZ%"
+          if errorlevel 1 exit /b 1
+
+          pushd "%OUT%"
+          tar -czf "%TGZ%" *
+          if errorlevel 1 exit /b 1
+          popd
+
+          echo Signed artifact ready:
+          dir "%TGZ%"
+
+      - name: Upload signed Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qdl-windows-x86_64
+          path: artifacts\qdl-windows-x86_64\qdl-windows-x86_64.tar.gz
+          overwrite: true
+
   release:
     name: Publish Dated Release
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, sign-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
