@@ -1,0 +1,59 @@
+name: Promote release to latest
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Tagged build to promote (for example build-2026.07.16-1)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: promote-latest
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.release_tag }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Validate build tag
+        run: |
+          case "$RELEASE_TAG" in
+            build-*) ;;
+            *)
+              echo "release_tag must start with build-" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Download the tagged release assets
+        run: gh release download "$RELEASE_TAG" --repo "$REPOSITORY" --dir artifacts
+
+      - name: Point latest at the selected build
+        run: |
+          source_sha="$(gh api "repos/$REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq .object.sha)"
+          if gh api "repos/$REPOSITORY/git/ref/tags/latest" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/$REPOSITORY/git/refs/tags/latest" \
+              -f sha="$source_sha" -F force=true
+          else
+            gh api --method POST "repos/$REPOSITORY/git/refs" \
+              -f ref="refs/tags/latest" -f sha="$source_sha"
+          fi
+
+      - name: Replace the latest release
+        run: |
+          if gh release view latest --repo "$REPOSITORY" >/dev/null 2>&1; then
+            gh release delete latest --repo "$REPOSITORY" --yes
+          fi
+          gh release create latest artifacts/* \
+            --repo "$REPOSITORY" \
+            --title "Latest QDL build" \
+            --notes "Promoted from [$RELEASE_TAG](https://github.com/$REPOSITORY/releases/tag/$RELEASE_TAG)."
