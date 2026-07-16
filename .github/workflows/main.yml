@@ -1,10 +1,14 @@
-name: Build and Release
+name: Build tagged release
 
 on:
-  workflow_dispatch:
   push:
     tags:
-      - "latest"
+      # Build snapshots rather than upstream qdl versions. For example:
+      # git tag build-2026.07.16-1 && git push origin build-2026.07.16-1
+      - "build-*"
+
+permissions:
+  contents: write
 
 jobs:
   build-linux:
@@ -116,7 +120,7 @@ jobs:
           path: .out/qdl-${{ matrix.platform }}.tar.gz
 
   release:
-    name: Publish Dated Release
+    name: Publish tagged release
     needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
@@ -126,17 +130,11 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate dated tag
-        id: generate_tag
-        run: |
-          release_name="Release $(date +'%Y-%m-%d-%H%M')"
-          echo "release_name=${release_name}" >> $GITHUB_OUTPUT
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.generate_tag.outputs.release_name }}
-          tag_name: latest
+          name: QDL build ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           files: |
             artifacts/qdl-linux-x86_64/qdl-linux-x86_64
             artifacts/qdl-linux-aarch64/qdl-linux-aarch64

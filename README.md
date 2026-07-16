@@ -7,7 +7,7 @@ This repository provides build scripts to build:
 
 ## Prebuilds
 
-There are ci generated prebuilds available on the [release page](https://github.com/luxonis/qdl-cross/releases/tag/latest)!
+The current prebuilds are available from the [latest release](https://github.com/luxonis/qdl-cross/releases/tag/latest). Tagged builds use the `build-*` convention, for example `build-2026.07.16-1`; this is a build identifier, not an upstream qdl version. Push one of those tags to create a release, then use the **Promote release to latest** workflow to choose which tagged build becomes `latest`.
 
 ## Build it yourself
 
